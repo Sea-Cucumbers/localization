@@ -32,10 +32,13 @@ while True:
       yaw = data[0]
       state, cov = predict(state, cov, yaw - prev_yaw, t - prev_t)
       state, cov = correct(state, cov, data[1:])
-      print(state)
+      state_deg = np.copy(state)
+      state_deg[2] *= 180/np.pi
+      print(np.trunc(state_deg))
       prev_t = t
       prev_yaw = yaw
-
+    else:
+      print('No data')
 
     mcu.flushInput()
 

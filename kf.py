@@ -1,9 +1,16 @@
 from angle_mod import *
 import numpy as np
 
+# Coordinates [x, y] of sensors in sensor 0's local frame, where sensor
+# 0's local frame aligns with the world frame at yaw = 0
+loc1 = [3*2.54, 3.5*2.54]
+loc2 = [0.5*2.54, 8.5*2.54]
+loc3 = [-2.5*2.54, 3.5*2.54]
+
 def init_state_given_yaw(yaw, obs):
   state = np.zeros(5)
   cov = np.eye(5)
+  cov[2, 2] = 0.04
   state[2] = yaw
   if yaw >= 7*np.pi/4 or yaw <= np.pi/4:
     # Facing forward
@@ -31,7 +38,7 @@ def init_state_given_yaw(yaw, obs):
 
   return state, cov
 
-# state is [x, y, yaw, vx, vy].
+# state is [x, y, yaw, vx, vy]. (x, y) is the location of sensor 0.
 # If we're facing long side of guiderail, theta = 0. (x, y) = (0, 0)
 # is at the intersection of guiderails. +x is left, +y is backwards.
 # theta is in radians, x and y are in cm, vx and vy are in meters per second.
@@ -46,6 +53,7 @@ def predict(state, cov, dyaw, dt):
   state[2] = angle_mod(state[2])
 
   Q = np.eye(5)
+  Q[2, 2] = 0.001
   cov = np.matmul(np.matmul(F_t, cov), F_t.transpose()) + Q
   return state, cov
 
@@ -55,16 +63,8 @@ def correct(state, cov, obs):
   zhat = 200*np.ones(4)
   H_t = np.zeros((4, 5))
 
-  # Figure out whether yaw is closer to a multiple of pi/2 or pi/4. If
-  # it's closer to pi/4, don't trust sensors
-  diff = fmodp(state[2], np.pi/2)
-  if diff > np.pi/8 and diff < 3*np.pi/8:
-    pass
-  elif state[2] >= 15*np.pi/8 or state[2] <= np.pi/8:
+  if state[2] >= 7*np.pi/4 or state[2] <= np.pi/4:
     # Facing forward
-    R[1, 1] = 1000
-    R[2, 2] = 1000
-
     theta = state[2]
     c = np.cos(theta)
     ooc = 1/c
@@ -77,10 +77,8 @@ def correct(state, cov, obs):
     H_t[3, 2] = state[0]*ddyaw
     H_t[0, 2] = state[1]*ddyaw
 
-  elif state[2] >= 3*np.pi/8 and state[2] <= 5*np.pi/8:
+  elif state[2] >= np.pi/4 and state[2] <= 3*np.pi/4:
     # Facing left
-    R[0, 0] = 1000
-    R[1, 1] = 1000
     c = np.cos(state[2] - np.pi/2)
 
     theta = state[2] - np.pi/2
@@ -95,10 +93,8 @@ def correct(state, cov, obs):
     H_t[2, 2] = state[0]*ddyaw
     H_t[3, 2] = state[1]*ddyaw
 
-  elif state[2] >= 7*np.pi/8 and state[2] <= 9*np.pi/8:
+  elif state[2] >= 3*np.pi/4 and state[2] <= 5*np.pi/4:
     # Facing backward
-    R[3, 3] = 1000
-    R[0, 0] = 1000
     c = np.cos(state[2] - np.pi)
     zhat[1] = state[0]/c
     zhat[2] = state[1]/c
@@ -115,11 +111,8 @@ def correct(state, cov, obs):
     H_t[1, 2] = state[0]*ddyaw
     H_t[2, 2] = state[1]*ddyaw
 
-  elif state[2] >= 11*np.pi/8 and state[2] <= 13*np.pi/8:
+  elif state[2] >= 5*np.pi/4 and state[2] <= 7*np.pi/4:
     # Facing right
-    R[2, 2] = 1000
-    R[3, 3] = 1000
-
     theta = state[2] - 3*np.pi/2
     c = np.cos(theta)
     ooc = 1/c
@@ -134,6 +127,12 @@ def correct(state, cov, obs):
 
   resid = obs - zhat
   inn_cov = np.matmul(np.matmul(H_t, cov), H_t.transpose()) + R
+
+  # Check if any sensors are surprisingly off. If so, don't trust them
+  for sensor in range(4):
+    if resid[sensor]*resid[sensor]/inn_cov[sensor, sensor] > 9:
+      inn_cov[sensor, sensor] = 1000
+
   Ktmp = np.matmul(cov, H_t.transpose())
   state = state + np.matmul(Ktmp, np.linalg.solve(inn_cov, resid))
   state[2] = angle_mod(state[2])
