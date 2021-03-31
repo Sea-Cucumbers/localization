@@ -51,7 +51,7 @@ def predict(state, cov, dyaw, dt):
 
 # Sensor 0 is on the same side as the ethernet cable. 1-3 go counterclockwise
 def correct(state, cov, obs):
-  R = 1000*np.eye(4)
+  R = np.eye(4)
   zhat = 200*np.ones(4)
   H_t = np.zeros((4, 5))
 
@@ -73,7 +73,7 @@ def correct(state, cov, obs):
 
     H_t[3, 0] = ooc
     H_t[0, 0] = ooc
-    ddyaw = sin(theta)/(c*c)
+    ddyaw = np.sin(theta)/(c*c)
     H_t[3, 2] = state[0]*ddyaw
     H_t[0, 2] = state[1]*ddyaw
 
@@ -91,7 +91,7 @@ def correct(state, cov, obs):
 
     H_t[2, 0] = ooc
     H_t[3, 1] = ooc
-    ddyaw = sin(theta)/(c*c)
+    ddyaw = np.sin(theta)/(c*c)
     H_t[2, 2] = state[0]*ddyaw
     H_t[3, 2] = state[1]*ddyaw
 
@@ -111,7 +111,7 @@ def correct(state, cov, obs):
 
     H_t[1, 0] = ooc
     H_t[2, 1] = ooc
-    ddyaw = sin(theta)/(c*c)
+    ddyaw = np.sin(theta)/(c*c)
     H_t[1, 2] = state[0]*ddyaw
     H_t[2, 2] = state[1]*ddyaw
 
@@ -128,7 +128,7 @@ def correct(state, cov, obs):
 
     H_t[0, 0] = ooc
     H_t[1, 1] = ooc
-    ddyaw = sin(theta)/(c*c)
+    ddyaw = np.sin(theta)/(c*c)
     H_t[0, 2] = state[0]*ddyaw
     H_t[1, 2] = state[1]*ddyaw
 
@@ -136,5 +136,6 @@ def correct(state, cov, obs):
   inn_cov = np.matmul(np.matmul(H_t, cov), H_t.transpose()) + R
   Ktmp = np.matmul(cov, H_t.transpose())
   state = state + np.matmul(Ktmp, np.linalg.solve(inn_cov, resid))
+  state[2] = angle_mod(state[2])
   cov = np.matmul(np.eye(5) - np.matmul(Ktmp, np.linalg.solve(inn_cov, H_t)), cov)
   return state, cov
