@@ -7,16 +7,20 @@ from kf import *
 mcu = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 initialized = False
 prev_yaw = 0
-yaw_chkpt = 0
+yawsum = 0 
 
 nfilters = 8
 states = np.zeros((5, nfilters))
 covs = np.array([np.eye(5) for i in range(nfilters)])
 log_weights = np.log(np.ones(nfilters)/nfilters)
 prev_t = 0
+
+filter_data = np.zeros((3, nfilters, 1000))
+fidx = 0
+
 while True:
-  time.sleep(0.1)
   try:
+    time.sleep(0.1)
     data = mcu.readline()
     if data:
       data = data.decode('utf-8').split()
@@ -44,8 +48,8 @@ while True:
         states[:, i], covs[i] = predict(states[:, i], covs[i], yaw - prev_yaw, t - prev_t)
         states[:, i], covs[i], new_log_weights[i] = correct(states[:, i], covs[i], data[1:], log_weights[i])
 
-      if abs(yaw - yaw_chkpt) > np.pi/2:
-        yaw_chkpt = yaw
+      yawsum += abs(yaw - prev_yaw)
+      if yawsum > 2*np.pi:
         log_weights = new_log_weights
         log_weights = normalize_log_weights(log_weights)
 
@@ -54,6 +58,13 @@ while True:
         covs = covs[live_filters]
         log_weights = normalize_log_weights(log_weights[live_filters])
         nfilters = len(covs)
+
+      filter_data[:, :nfilters, fidx] = states[:3]
+      if fidx == 300:
+        np.save(str(int(time.time())) + '.npy', filter_data)
+        print('saved file')
+
+      fidx += 1
         
       state = np.matmul(states, np.exp(log_weights))
       state_deg = np.copy(state)
