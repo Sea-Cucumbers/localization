@@ -10,7 +10,7 @@ def normalize_log_weights(log_weights):
 # 0's local frame aligns with the world frame at yaw = 0
 loc1 = [3*2.54, 3.5*2.54]
 loc2 = [0.5*2.54, 8.5*2.54]
-loc3 = [-2.5*2.54, 3.5*2.54]
+loc3 = [-2.5*2.54, 4.5*2.54]
 
 def init_state_given_yaw(yaw, obs):
   state = np.zeros(5)
