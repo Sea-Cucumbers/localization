@@ -4,8 +4,6 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 mcu = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
-yaws = []
-dists = []
 while True:
   time.sleep(0.1)
   try:
@@ -14,6 +12,9 @@ while True:
       data = data.decode('utf-8').split()
       if len(data) < 5:
         continue
+
+      data = [float(d) for d in data]
+      print(data)
 
     mcu.flushInput()
 
