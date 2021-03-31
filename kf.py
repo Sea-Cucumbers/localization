@@ -68,7 +68,7 @@ def correct(state, cov, obs):
     theta = state[2]
     c = np.cos(theta)
     ooc = 1/c
-    zhat[3] = state[0]*ooc
+    zhat[3] = state[0]*ooc + loc3[0]
     zhat[0] = state[1]*ooc
 
     H_t[3, 0] = ooc
@@ -79,13 +79,11 @@ def correct(state, cov, obs):
 
   elif state[2] >= np.pi/4 and state[2] <= 3*np.pi/4:
     # Facing left
-    c = np.cos(state[2] - np.pi/2)
-
     theta = state[2] - np.pi/2
     c = np.cos(theta)
     ooc = 1/c
-    zhat[2] = state[0]*ooc
-    zhat[3] = state[1]*ooc
+    zhat[2] = state[0]*ooc - loc2[1]
+    zhat[3] = state[1]*ooc + loc3[0]
 
     H_t[2, 0] = ooc
     H_t[3, 1] = ooc
@@ -95,15 +93,11 @@ def correct(state, cov, obs):
 
   elif state[2] >= 3*np.pi/4 and state[2] <= 5*np.pi/4:
     # Facing backward
-    c = np.cos(state[2] - np.pi)
-    zhat[1] = state[0]/c
-    zhat[2] = state[1]/c
-
     theta = state[2] - np.pi
     c = np.cos(theta)
     ooc = 1/c
-    zhat[1] = state[0]*ooc
-    zhat[2] = state[1]*ooc
+    zhat[1] = state[0]*ooc - loc1[0]
+    zhat[2] = state[1]*ooc - loc2[1]
 
     H_t[1, 0] = ooc
     H_t[2, 1] = ooc
@@ -117,7 +111,7 @@ def correct(state, cov, obs):
     c = np.cos(theta)
     ooc = 1/c
     zhat[0] = state[0]*ooc
-    zhat[1] = state[1]*ooc
+    zhat[1] = state[1]*ooc - loc1[0]
 
     H_t[0, 0] = ooc
     H_t[1, 1] = ooc
