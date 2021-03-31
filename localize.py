@@ -2,6 +2,7 @@ import serial
 import time
 import matplotlib.pyplot as plt
 import numpy as np
+from kf import *
 
 mcu = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 while True:
