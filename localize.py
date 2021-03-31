@@ -73,9 +73,10 @@ while True:
       fidx += 1
         
       state = np.matmul(states, np.exp(log_weights))
-      state_deg = np.copy(state)
-      state_deg[2] *= 180/np.pi
-      print(np.trunc(state_deg))
+      state_to_print = np.copy(state)
+      state_to_print[2] *= 180/np.pi
+      state_to_print[:2] /= 2.54
+      print(np.trunc(state_to_print))
       prev_t = t
       prev_yaw = yaw
     else:
