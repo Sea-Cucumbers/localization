@@ -1,6 +1,11 @@
 from angle_mod import *
 import numpy as np
 
+def normalize_log_weights(log_weights):
+  weights = np.exp(log_weights - np.max(log_weights))
+  weights /= np.sum(weights)
+  return np.log(weights);
+
 # Coordinates [x, y] of sensors in sensor 0's local frame, where sensor
 # 0's local frame aligns with the world frame at yaw = 0
 loc1 = [3*2.54, 3.5*2.54]
@@ -58,7 +63,7 @@ def predict(state, cov, dyaw, dt):
   return state, cov
 
 # Sensor 0 is on the same side as the ethernet cable. 1-3 go counterclockwise
-def correct(state, cov, obs):
+def correct(state, cov, obs, log_weight):
   R = np.eye(4)
   zhat = 200*np.ones(4)
   H_t = np.zeros((4, 5))
@@ -131,4 +136,7 @@ def correct(state, cov, obs):
   state = state + np.matmul(Ktmp, np.linalg.solve(inn_cov, resid))
   state[2] = angle_mod(state[2])
   cov = np.matmul(np.eye(5) - np.matmul(Ktmp, np.linalg.solve(inn_cov, H_t)), cov)
-  return state, cov
+
+  dist = np.matmul(resid, np.linalg.solve(inn_cov, resid))
+  log_weight -= 0.5*dist + 0.5*np.log(np.linalg.det(inn_cov))
+  return state, cov, log_weight
