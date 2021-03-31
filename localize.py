@@ -4,6 +4,9 @@ import matplotlib.pyplot as plt
 import numpy as np
 from kf import *
 
+maxx = 152.4
+maxy = 91.44
+
 mcu = serial.Serial('/dev/ttyACM0', 9600, timeout=1)
 initialized = False
 prev_yaw = 0
@@ -17,6 +20,7 @@ prev_t = 0
 
 filter_data = np.zeros((3, nfilters, 1000))
 fidx = 0
+saved = False
 
 while True:
   try:
@@ -54,15 +58,17 @@ while True:
         log_weights = normalize_log_weights(log_weights)
 
         live_filters = np.logical_and(np.logical_and(log_weights > -10, states[0] > 0), states[1] > 0)
+        live_filters = np.logical_and(live_filters, np.logical_and(states[0] < maxx, states[1] < maxy))
         states = states[:, live_filters]
         covs = covs[live_filters]
         log_weights = normalize_log_weights(log_weights[live_filters])
         nfilters = len(covs)
 
       filter_data[:, :nfilters, fidx] = states[:3]
-      if fidx == 300:
-        np.save(str(int(time.time())) + '.npy', filter_data)
+      if fidx == 300 and not saved:
+        np.save(str(int(time.time())) + '.npy', filter_data[:, :, :fidx])
         print('saved file')
+        saved = True
 
       fidx += 1
         
